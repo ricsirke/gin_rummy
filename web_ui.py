@@ -78,7 +78,7 @@ def html_page(message=""):
         if AWAITING_DISCARD:
             html.append("<p>Select a card to discard:</p>")
             for card in HUMAN.hand.cards:
-                html.append(f'<a href="/discard?card={card}">{card.to_html()}</a> ')
+                html.append(f'<a href="/discard?card={card}">{card.to_html()}</a>')
         elif DECISION_PENDING:
             if HUMAN.hand.is_gin():
                 html.append('<p><a href="/gin">Gin</a></p>')
@@ -103,7 +103,7 @@ def html_page(message=""):
 
     html.append('<p><a href="/reset">Restart</a></p>')
     html.append("</body></html>")
-    return "".join(html).encode("utf-8")
+    return "\n".join(html).encode("utf-8")
 
 
 def application(environ, start_response):
