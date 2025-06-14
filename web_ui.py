@@ -6,6 +6,8 @@ from urllib.parse import parse_qs
 from gin_rummy import Player, GinRummyGame, Card, possible_melds
 from random_player import RandomPlayer
 
+HTML_HEADERS = [("Content-Type", "text/html; charset=utf-8")]
+
 # Global game state
 GAME = None
 HUMAN = None
@@ -100,7 +102,7 @@ def html_page(message=""):
 
     html.append('<p><a href="/reset">Restart</a></p>')
     html.append("</body></html>")
-    return "".join(html).encode()
+    return "".join(html).encode("utf-8")
 
 
 def application(environ, start_response):
@@ -146,21 +148,21 @@ def application(environ, start_response):
             HUMAN.discard(card, GAME.discard_pile)
             AWAITING_DISCARD = False
             if HUMAN.hand.is_gin():
-                start_response("200 OK", [("Content-Type", "text/html")])
-                return [f"<p>You win with hand: {HUMAN.hand}</p>".encode()]
+                start_response("200 OK", HTML_HEADERS)
+                return [f"<p>You win with hand: {HUMAN.hand}</p>".encode("utf-8")]
             DECISION_PENDING = True
         return redirect(start_response)
 
     if path == "/knock" and CURRENT_TURN == "human" and DECISION_PENDING:
         if HUMAN.hand.score_deadwood() <= 10:
-            start_response("200 OK", [("Content-Type", "text/html")])
-            return [f"<p>You knock with hand: {HUMAN.hand}</p>".encode()]
+            start_response("200 OK", HTML_HEADERS)
+            return [f"<p>You knock with hand: {HUMAN.hand}</p>".encode("utf-8")]
         return redirect(start_response)
 
     if path == "/gin" and CURRENT_TURN == "human" and DECISION_PENDING:
         if HUMAN.hand.is_gin():
-            start_response("200 OK", [("Content-Type", "text/html")])
-            return [f"<p>You go gin with hand: {HUMAN.hand}</p>".encode()]
+            start_response("200 OK", HTML_HEADERS)
+            return [f"<p>You go gin with hand: {HUMAN.hand}</p>".encode("utf-8")]
         return redirect(start_response)
 
     if path == "/end_turn" and CURRENT_TURN == "human" and DECISION_PENDING:
@@ -172,11 +174,11 @@ def application(environ, start_response):
     if CURRENT_TURN == "computer":
         COMPUTER.play_turn(GAME)
         if COMPUTER.hand.is_gin():
-            start_response("200 OK", [("Content-Type", "text/html")])
-            return [f"<p>Computer wins with hand: {COMPUTER.hand}</p>".encode()]
+            start_response("200 OK", HTML_HEADERS)
+            return [f"<p>Computer wins with hand: {COMPUTER.hand}</p>".encode("utf-8")]
         CURRENT_TURN = "human"
 
-    start_response("200 OK", [("Content-Type", "text/html")])
+    start_response("200 OK", HTML_HEADERS)
     return [html_page()]
 
 
