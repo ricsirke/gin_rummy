@@ -11,3 +11,15 @@ python3 gin_rummy.py
 ```
 
 The example in `__main__` is purely demonstrative and does not implement full game strategy.
+
+## Browser UI
+
+You can also play against the random computer player through a very simple web
+interface:
+
+```bash
+python3 web_ui.py
+```
+
+Open `http://localhost:8000` in a browser and follow the links to draw and
+discard cards. The interface displays text representations of the cards.
