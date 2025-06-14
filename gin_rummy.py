@@ -101,6 +101,7 @@ class Player:
     def __init__(self, name: str):
         self.name = name
         self.hand = Hand()
+        self.melds: List[List[Card]] = []  # cards the player has laid down
 
     def draw(self, source: List[Card]):
         card = source.pop()

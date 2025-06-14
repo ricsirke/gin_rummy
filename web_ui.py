@@ -3,7 +3,7 @@
 from wsgiref.simple_server import make_server
 from urllib.parse import parse_qs
 
-from gin_rummy import Player, GinRummyGame
+from gin_rummy import Player, GinRummyGame, Card
 from random_player import RandomPlayer
 
 # Global game state
@@ -30,6 +30,63 @@ def find_card(cards, rep):
     return None
 
 
+def is_valid_meld(cards):
+    """Return True if the given cards form a valid set or run."""
+    if len(cards) < 3:
+        return False
+    ranks = {c.rank for c in cards}
+    suits = {c.suit for c in cards}
+    if len(ranks) == 1:
+        return True
+    if len(suits) == 1:
+        sorted_ranks = sorted(c.rank for c in cards)
+        return all(r == sorted_ranks[0] + i for i, r in enumerate(sorted_ranks))
+    return False
+
+
+def possible_melds(hand):
+    """Return a list of possible melds (sets or runs) from the given hand."""
+    cards = list(hand.cards)
+    melds = []
+
+    # sets
+    ranks = {}
+    for c in cards:
+        ranks.setdefault(c.rank, []).append(c)
+    for group in ranks.values():
+        if len(group) >= 3:
+            melds.append(group)
+
+    # runs
+    suits = {}
+    for c in cards:
+        suits.setdefault(c.suit, []).append(c)
+    for suit_cards in suits.values():
+        suit_cards.sort(key=lambda c: c.rank)
+        run = []
+        last = None
+        for card in suit_cards:
+            if last is None or card.rank == last + 1:
+                run.append(card)
+            else:
+                if len(run) >= 3:
+                    melds.append(run[:])
+                run = [card]
+            last = card.rank
+        if len(run) >= 3:
+            melds.append(run)
+
+    # Deduplicate melds by string representation
+    uniq = []
+    seen = set()
+    for m in melds:
+        rep = tuple(sorted(str(c) for c in m))
+        if rep not in seen:
+            uniq.append(m)
+            seen.add(rep)
+    return uniq
+
+
 def redirect(start_response, location="/"):
     start_response("303 See Other", [("Location", location)])
     return [b""]
@@ -42,12 +99,17 @@ def html_page(message=""):
 
     html = ["<html><body>"]
     html.append(f"<h2>Your hand: {hand}</h2>")
+    if HUMAN.melds:
+        for meld in HUMAN.melds:
+            meld_str = " ".join(str(c) for c in meld)
+            html.append(f"<p>Meld: {meld_str}</p>")
     html.append(f"<p>Top of discard pile: {top_discard}</p>")
     html.append(f"<p>Cards left in deck: {deck_count}</p>")
     if message:
         html.append(f"<p>{message}</p>")
 
     if CURRENT_TURN == "human":
+        html.append('<p><a href="/sort">Sort hand</a></p>')
         if AWAITING_DISCARD:
             html.append("<p>Select a card to discard:</p>")
             for card in HUMAN.hand.cards:
@@ -57,6 +119,14 @@ def html_page(message=""):
             html.append('<a href="/draw?source=deck">Deck</a> ')
             if GAME.discard_pile:
                 html.append(f'<a href="/draw?source=discard">Discard ({top_discard})</a>')
+        # Meld options
+        melds = possible_melds(HUMAN.hand)
+        if melds:
+            html.append("<p>Lay down a meld:</p>")
+            for meld in melds:
+                label = " ".join(str(c) for c in meld)
+                param = "-".join(str(c) for c in meld)
+                html.append(f'<a href="/meld?cards={param}">{label}</a><br>')
     else:
         html.append("<p>Computer's turn...</p>")
 
@@ -75,6 +145,20 @@ def application(environ, start_response):
 
     if path == "/reset":
         start_new_game()
+        return redirect(start_response)
+
+    if path == "/sort" and CURRENT_TURN == "human":
+        HUMAN.hand.sort()
+        return redirect(start_response)
+
+    if path == "/meld" and CURRENT_TURN == "human":
+        card_param = query.get("cards", [""])[0]
+        reps = [r for r in card_param.split("-") if r]
+        cards = [find_card(HUMAN.hand.cards, r) for r in reps]
+        if all(cards) and is_valid_meld(cards):
+            for c in cards:
+                HUMAN.hand.remove_card(c)
+            HUMAN.melds.append(cards)
         return redirect(start_response)
 
     if path == "/draw" and CURRENT_TURN == "human" and not AWAITING_DISCARD:
