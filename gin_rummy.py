@@ -7,6 +7,7 @@ from typing import List, Optional
 class Card:
     SUITS = ['C', 'D', 'H', 'S']
     RANKS = list(range(1, 14))  # 1=Ace, 11=Jack, 12=Queen, 13=King
+    SUIT_SYMBOLS = {'C': '♣', 'D': '♦', 'H': '♥', 'S': '♠'}
 
     def __init__(self, rank: int, suit: str):
         if rank not in Card.RANKS:
@@ -19,7 +20,8 @@ class Card:
     def __repr__(self):
         names = {1: 'A', 11: 'J', 12: 'Q', 13: 'K'}
         r = names.get(self.rank, str(self.rank))
-        return f'{r}{self.suit}'
+        symbol = Card.SUIT_SYMBOLS[self.suit]
+        return f'{r}{symbol}'
 
 class Deck:
     def __init__(self):
@@ -96,6 +98,49 @@ class Hand:
                         remaining.remove(c)
 
         return melds, remaining
+
+
+def possible_melds(hand: "Hand") -> List[List[Card]]:
+    """Return a list of possible melds (sets or runs) from the hand."""
+    cards = list(hand.cards)
+    melds: List[List[Card]] = []
+
+    # sets
+    ranks: dict[int, List[Card]] = defaultdict(list)
+    for c in cards:
+        ranks[c.rank].append(c)
+    for group in ranks.values():
+        if len(group) >= 3:
+            melds.append(group[:])
+
+    # runs by suit
+    suits: dict[str, List[Card]] = defaultdict(list)
+    for c in cards:
+        suits[c.suit].append(c)
+    for suit_cards in suits.values():
+        suit_cards.sort(key=lambda c: c.rank)
+        run: List[Card] = []
+        last = None
+        for card in suit_cards:
+            if last is None or card.rank == last + 1:
+                run.append(card)
+            else:
+                if len(run) >= 3:
+                    melds.append(run[:])
+                run = [card]
+            last = card.rank
+        if len(run) >= 3:
+            melds.append(run[:])
+
+    # deduplicate by string representation
+    uniq: List[List[Card]] = []
+    seen: set[tuple[str, ...]] = set()
+    for m in melds:
+        rep = tuple(sorted(str(c) for c in m))
+        if rep not in seen:
+            uniq.append(m)
+            seen.add(rep)
+    return uniq
 
 class Player:
     def __init__(self, name: str):
