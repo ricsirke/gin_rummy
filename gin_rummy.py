@@ -131,16 +131,18 @@ class GinRummyGame:
             player = self.players[current]
             opponent = self.players[1 - current]
 
-            # draw from deck for simplicity
             if not self.deck.cards:
                 # no cards left means the round ends in a draw
                 return None
-            drawn = self.deck.draw()
-            player.hand.add_card(drawn)
 
-            # discard random card for demonstration
-            discard = random.choice(player.hand.cards)
-            player.discard(discard, self.discard_pile)
+            if hasattr(player, "play_turn"):
+                player.play_turn(self)
+            else:
+                # default random action
+                drawn = self.deck.draw()
+                player.hand.add_card(drawn)
+                discard = random.choice(player.hand.cards)
+                player.discard(discard, self.discard_pile)
 
             if player.hand.is_gin():
                 return player
@@ -151,7 +153,9 @@ class GinRummyGame:
 
 if __name__ == '__main__':
     random.seed(42)
-    players = [Player('A'), Player('B')]
+    from random_player import RandomPlayer
+
+    players = [RandomPlayer('A'), RandomPlayer('B')]
     game = GinRummyGame(players)
     winner = game.play_round()
     if winner:
