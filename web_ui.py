@@ -53,21 +53,22 @@ def redirect(start_response, location="/"):
 
 
 def html_page(message=""):
-    top_discard = GAME.discard_pile[-1] if GAME.discard_pile else "None"
-    hand = " ".join(str(c) for c in HUMAN.hand.cards)
+    top_discard = GAME.discard_pile[-1] if GAME.discard_pile else None
+    hand = " ".join(c.to_html() for c in HUMAN.hand.cards)
     deck_count = len(GAME.deck.cards)
 
     html = ["<html><body>"]
     html.append(f"<h2>Your hand: {hand}</h2>")
     if HUMAN.melds:
         for meld in HUMAN.melds:
-            meld_str = " ".join(str(c) for c in meld)
+            meld_str = " ".join(c.to_html() for c in meld)
             html.append(f"<p>Meld: {meld_str}</p>")
     if COMPUTER.melds:
         for meld in COMPUTER.melds:
-            meld_str = " ".join(str(c) for c in meld)
+            meld_str = " ".join(c.to_html() for c in meld)
             html.append(f"<p>Computer meld: {meld_str}</p>")
-    html.append(f"<p>Top of discard pile: {top_discard}</p>")
+    td_display = top_discard.to_html() if top_discard else "None"
+    html.append(f"<p>Top of discard pile: {td_display}</p>")
     html.append(f"<p>Cards left in deck: {deck_count}</p>")
     if message:
         html.append(f"<p>{message}</p>")
@@ -77,7 +78,7 @@ def html_page(message=""):
         if AWAITING_DISCARD:
             html.append("<p>Select a card to discard:</p>")
             for card in HUMAN.hand.cards:
-                html.append(f'<a href="/discard?card={card}">{card}</a> ')
+                html.append(f'<a href="/discard?card={card}">{card.to_html()}</a> ')
         elif DECISION_PENDING:
             if HUMAN.hand.is_gin():
                 html.append('<p><a href="/gin">Gin</a></p>')
@@ -88,13 +89,13 @@ def html_page(message=""):
             html.append("<p>Draw a card:</p>")
             html.append('<a href="/draw?source=deck">Deck</a> ')
             if GAME.discard_pile:
-                html.append(f'<a href="/draw?source=discard">Discard ({top_discard})</a>')
+                html.append(f'<a href="/draw?source=discard">Discard ({top_discard.to_html()})</a>')
         # Meld options
         melds = possible_melds(HUMAN.hand)
         if melds:
             html.append("<p>Lay down a meld:</p>")
             for meld in melds:
-                label = " ".join(str(c) for c in meld)
+                label = " ".join(c.to_html() for c in meld)
                 param = "-".join(str(c) for c in meld)
                 html.append(f'<a href="/meld?cards={param}">{label}</a><br>')
     else:

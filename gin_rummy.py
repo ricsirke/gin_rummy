@@ -23,6 +23,23 @@ class Card:
         symbol = Card.SUIT_SYMBOLS[self.suit]
         return f'{r}{symbol}'
 
+    def colored(self) -> str:
+        """Return an ANSI colored representation of the card."""
+        names = {1: 'A', 11: 'J', 12: 'Q', 13: 'K'}
+        r = names.get(self.rank, str(self.rank))
+        symbol = Card.SUIT_SYMBOLS[self.suit]
+        if self.suit in ('D', 'H'):
+            return f"\033[31m{r}{symbol}\033[0m"
+        return f"{r}{symbol}"
+
+    def to_html(self) -> str:
+        """Return an HTML representation of the card with color styling."""
+        names = {1: 'A', 11: 'J', 12: 'Q', 13: 'K'}
+        r = names.get(self.rank, str(self.rank))
+        symbol = Card.SUIT_SYMBOLS[self.suit]
+        color = 'red' if self.suit in ('D', 'H') else 'black'
+        return f'<span style="color:{color}">{r}{symbol}</span>'
+
 class Deck:
     def __init__(self):
         self.cards = [Card(rank, suit) for suit in Card.SUITS for rank in Card.RANKS]
@@ -48,6 +65,10 @@ class Hand:
 
     def __repr__(self):
         return ' '.join(map(str, self.cards))
+
+    def colored(self) -> str:
+        """Return a string representation using ANSI colors."""
+        return ' '.join(c.colored() for c in self.cards)
 
     def score_deadwood(self) -> int:
         """Return the total pip value of unmatched cards."""
@@ -205,6 +226,6 @@ if __name__ == '__main__':
     game = GinRummyGame(players)
     winner = game.play_round()
     if winner:
-        print(f'{winner.name} wins with hand: {winner.hand}')
+        print(f'{winner.name} wins with hand: {winner.hand.colored()}')
     else:
         print('Round ended in a draw.')
